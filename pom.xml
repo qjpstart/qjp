@@ -137,6 +137,11 @@
 			<artifactId>jasypt-spring-boot-starter</artifactId>
 			<version>3.0.5</version> <!-- 最新稳定版 -->
 		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.12.0</version>
+		</dependency>
 
 	</dependencies>
 

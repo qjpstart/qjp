@@ -16,12 +16,12 @@ public class BookUpdateRequestDTO {
 
     // 带参数的构造函数
     public BookUpdateRequestDTO(String bookName, String author, String publisher,
-                                LocalDate publisherDate, Integer categoryIde, String location) {
+                                LocalDate publisherDate, Integer categoryId, String location) {
         this.bookName = bookName;
         this.author = author;
         this.publisher = publisher;
         this.publisherDate = publisherDate;
-        this.categoryId = categoryIde;
+        this.categoryId = categoryId;
         this.location = location;
     }
 

@@ -222,4 +222,19 @@ public class ReserveController {
         boolean isExpired = reserveService.isReserveExpired(reserveId);
         return CommonResponseDTO.success(isExpired, isExpired ? "该预约已过期" : "该预约未过期");
     }
+
+    /**
+     * 完成预约（用户取书后）
+     * 仅管理员可操作，标记预约流程结束
+     */
+    @PutMapping("/{reserveId}/complete")
+    @Operation(summary = "完成预约", description = "用户取书后标记预约为完成，仅管理员可操作")
+    public CommonResponseDTO<Void> completeReservation(
+            @Parameter(description = "预约记录ID", required = true)
+            @PathVariable @Min(1) Integer reserveId
+    ) {
+        checkAdminPermission(); // 校验管理员权限
+        reserveService.completeReservation(reserveId);
+        return CommonResponseDTO.success(null, "预约已完成");
+    }
 }

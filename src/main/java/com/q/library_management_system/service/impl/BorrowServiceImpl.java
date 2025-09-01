@@ -2,11 +2,13 @@ package com.q.library_management_system.service.impl;
 
 import com.q.library_management_system.entity.Book;
 import com.q.library_management_system.entity.BorrowRecord;
+import com.q.library_management_system.entity.ReserveRecord;
 import com.q.library_management_system.entity.User;
 import com.q.library_management_system.entity.User.UserStatus;
 import com.q.library_management_system.exception.BusinessException;
 import com.q.library_management_system.repository.BookRepository;
 import com.q.library_management_system.repository.BorrowRecordRepository;
+import com.q.library_management_system.repository.ReserveRecordRepository;
 import com.q.library_management_system.repository.UserRepository;
 import com.q.library_management_system.service.BorrowService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,14 @@ public class BorrowServiceImpl implements BorrowService {
     private final BorrowRecordRepository borrowRecordRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final ReserveRecordRepository reserveRecordRepository;
+
+    // 锁对象缓存，确保同一bookId对应同一锁实例
+    private final ConcurrentHashMap<Integer, Object> lockMap = new ConcurrentHashMap<>();
+
+    private Object getLock(Integer bookId) {
+        return lockMap.computeIfAbsent(bookId, k -> new Object());
+    }
 
     // 逾期相关配置
     private static final int OVERDUE_FREEZE_THRESHOLD = 7; // 逾期7天冻结账户
@@ -63,42 +74,60 @@ public class BorrowServiceImpl implements BorrowService {
     @Override
     @Transactional
     public BorrowRecord borrowBook(Integer userId, Integer bookId, int days) {
-        // 校验用户状态
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("用户不存在"));
-        if (user.getStatus() == User.UserStatus.frozen) {
-            throw new BusinessException("用户账号已冻结，无法借书");
+        // 增加锁机制，确保同一本书的借阅操作串行执行，防止并发超借
+        synchronized (getLock(bookId)) {
+            // 1. 校验用户状态
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BusinessException("用户不存在"));
+            if (user.getStatus() == User.UserStatus.frozen) {
+                throw new BusinessException("用户账号已冻结，无法借书");
+            }
+
+            // 2. 校验图书状态和库存（查询时加锁或使用悲观锁查询）
+            Book book = bookRepository.findByIdWithLock(bookId) // 需在BookRepository添加带锁查询方法
+                    .orElseThrow(() -> new BusinessException("图书不存在"));
+            if (book.getAvailableCount() <= 0) {
+                throw new BusinessException("图书库存不足");
+            }
+
+            // 3. 检查是否有未归还的同一本书
+            if (borrowRecordRepository.existsByUserIdAndBookIdAndBorrowStatus(
+                    userId, bookId, BorrowRecord.BorrowStatus.unreturned)) {
+                throw new BusinessException("不可重复借阅同一本书");
+            }
+
+            // 4. 检查预约权限：只有当前预约队列的第一位用户可借阅
+            List<ReserveRecord> validReserves = reserveRecordRepository
+                    .findByBookIdAndReserveStatusOrderByReserveDateAsc(
+                            bookId, ReserveRecord.ReserveStatus.reserved);
+            if (!validReserves.isEmpty()) {
+                ReserveRecord firstReserve = validReserves.get(0);
+                if (!firstReserve.getUserId().equals(userId)) {
+                    throw new BusinessException("当前有其他用户预约该图书，请排队等待");
+                }
+                // 5. 若为当前有效预约用户，更新预约状态为completed
+                firstReserve.setReserveStatus(ReserveRecord.ReserveStatus.completed);
+                reserveRecordRepository.save(firstReserve);
+            }
+
+            // 6. 创建借阅记录
+            BorrowRecord record = new BorrowRecord();
+            record.setUserId(userId);
+            record.setBookId(bookId);
+            record.setBorrowDate(LocalDateTime.now());
+            record.setDueDate(addDaysToCurrentDate(days));
+            record.setBorrowStatus(BorrowRecord.BorrowStatus.unreturned);
+            record.setRenewCount(0);
+            record.setFineAmount(BigDecimal.ZERO);
+
+            // 7. 扣减库存（基于加锁后的查询结果，确保库存正确）
+            book.setAvailableCount(book.getAvailableCount() - 1);
+            bookRepository.save(book);
+
+            return borrowRecordRepository.save(record);
         }
-
-        // 校验图书状态和库存
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new BusinessException("图书不存在"));
-        if (book.getAvailableCount() <= 0) {
-            throw new BusinessException("图书库存不足");
-        }
-
-        // 检查是否有未归还的同一本书（依赖BorrowRecordRepository的方法）
-        if (borrowRecordRepository.existsByUserIdAndBookIdAndBorrowStatus(
-                userId, bookId, BorrowRecord.BorrowStatus.unreturned)) {
-            throw new BusinessException("不可重复借阅同一本书");
-        }
-
-        // 创建借阅记录（使用LocalDateTime，与实体类匹配）
-        BorrowRecord record = new BorrowRecord();
-        record.setUserId(userId);
-        record.setBookId(bookId);
-        record.setBorrowDate(LocalDateTime.now()); // 当前时间
-        record.setDueDate(addDaysToCurrentDate(days)); // 到期日：当前时间加days天
-        record.setBorrowStatus(BorrowRecord.BorrowStatus.unreturned);
-        record.setRenewCount(0);
-        record.setFineAmount(BigDecimal.ZERO);
-
-        // 扣减库存
-        book.setAvailableCount(book.getAvailableCount() - 1);
-        bookRepository.save(book);
-
-        return borrowRecordRepository.save(record);
     }
+
 
     @Override
     @Transactional

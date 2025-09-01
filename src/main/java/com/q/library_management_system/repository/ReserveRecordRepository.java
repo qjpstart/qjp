@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ReserveRecordRepository extends JpaRepository<ReserveRecord, Integer> {
     // 根据用户ID查询预约记录
@@ -40,6 +41,23 @@ public interface ReserveRecordRepository extends JpaRepository<ReserveRecord, In
             ReserveRecord.ReserveStatus status,
             LocalDateTime start,
             LocalDateTime end
+    );
+
+    // 显式声明方法：根据 userId、bookId、reserveStatus 查询单个预约记录
+    // 注意：方法名必须严格匹配实体类字段名（大小写敏感）
+    Optional<ReserveRecord> findByUserIdAndBookIdAndReserveStatus(
+            Integer userId,          // 对应 ReserveRecord 的 userId 字段
+            Integer bookId,          // 对应 ReserveRecord 的 bookId 字段
+            ReserveRecord.ReserveStatus reserveStatus  // 对应 ReserveRecord 的 reserveStatus 字段
+    );
+
+    // 检查指定图书是否存在指定状态的预约
+    boolean existsByBookIdAndReserveStatus(Integer bookId, ReserveRecord.ReserveStatus status);
+
+    // 按图书ID、状态查询并按预约时间升序排序的方法
+    List<ReserveRecord> findByBookIdAndReserveStatusOrderByReserveDateAsc(
+            Integer bookId,
+            ReserveRecord.ReserveStatus status
     );
 }
 

@@ -27,13 +27,17 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,7 +47,12 @@ public class BookServiceImpl implements BookService {
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
     private final BorrowRecordRepository borrowRecordRepository;
+    private final ConcurrentHashMap<Integer, Object> bookLocks = new ConcurrentHashMap<>(); //按bookId的细粒度锁
 
+    // 获取当前图书的专属锁对象
+    private Object getLock(Integer bookId) {
+        return bookLocks.computeIfAbsent(bookId, k -> new Object());
+    }
 
     @Override
     @Transactional
@@ -194,16 +203,13 @@ public class BookServiceImpl implements BookService {
     }
 
     //查询图书的借阅状态（是否可借）
-    @Override
     public boolean isBookAvailable(Integer bookId) {
-        // 检查可借库存
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new BusinessException("图书不存在"));
-
-        if (book.getAvailableCount() <= 0) {
-            return false;
+        // 使用 synchronized 锁定图书ID对应的对象，确保同一本书的操作串行执行
+        synchronized (getLock(bookId)) {
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new BusinessException("图书不存在"));
+            return book.getAvailableCount() > 0;
         }
-        return true;
     }
 
     //统计指定图书的总数量（单本图书的总库存）
@@ -282,16 +288,18 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public void reduceAvailableStock(Integer bookId) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new BusinessException("图书不存在"));
+        synchronized (getLock(bookId)) { // 加锁，确保并发安全
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new BusinessException("图书不存在"));
 
-        if (book.getAvailableCount() <= 0) {
-            throw new BusinessException("图书已无可用库存，无法借阅");
+             if (book.getAvailableCount() <= 0) {
+                    throw new BusinessException("图书已无可用库存，无法借阅");
+             }
+
+            // 仅减少可借库存，总库存不变
+            book.setAvailableCount(book.getAvailableCount() - 1);
+            bookRepository.save(book);
         }
-
-        // 仅减少可借库存，总库存不变
-        book.setAvailableCount(book.getAvailableCount() - 1);
-        bookRepository.save(book);
     }
 
     /**
@@ -301,17 +309,19 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional
     public void increaseAvailableStock(Integer bookId) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new BusinessException("图书不存在"));
+        synchronized (getLock(bookId)) { // 加锁
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new BusinessException("图书不存在"));
 
-        // 防止可借库存超过总库存（异常保护）
-        if (book.getAvailableCount() >= book.getTotalStock()) {
-            throw new BusinessException("可借库存已达上限，无需增加");
+            // 防止可借库存超过总库存（异常保护）
+            if (book.getAvailableCount() >= book.getTotalStock()) {
+                throw new BusinessException("可借库存已达上限，无需增加");
+            }
+
+            // 仅增加可借库存，总库存不变
+            book.setAvailableCount(book.getAvailableCount() + 1);
+            bookRepository.save(book);
         }
-
-        // 仅增加可借库存，总库存不变
-        book.setAvailableCount(book.getAvailableCount() + 1);
-        bookRepository.save(book);
     }
 
     // 2. 实现：图书列表查询（分页+多条件）
@@ -370,28 +380,57 @@ public class BookServiceImpl implements BookService {
         );
     }
 
-    // 实现修改后的方法，从DTO中提取参数
+    // 从DTO中提取参数
     @Override
     public PageResultDTO<BookListResponseDTO> searchBooks(BookSearchRequestDTO searchDTO) {
-        // 从DTO中获取所有参数
-        String keyword = searchDTO.getKeyword();
-        Integer categoryId = searchDTO.getCategoryId();
-        int pageNum = searchDTO.getPageNum() - 1; // 转换为JPA页码（0开始）
+        // 1. 分页参数校验与处理（增强边界保护）
+        if (searchDTO == null) {
+            throw new BusinessException("查询参数不能为空");
+        }
+
+        int pageNum = searchDTO.getPageNum();
         int pageSize = searchDTO.getPageSize();
 
-        // 构建分页参数
-        Pageable pageable = PageRequest.of(pageNum, pageSize);
+        // 校验页码合法性（必须为正数）
+        if (pageNum < 1) {
+            throw new BusinessException("页码必须大于等于1");
+        }
+        // 转换为JPA页码（0开始）
+        int jpaPageNum = pageNum - 1;
 
-        // 构建查询条件（示例）
+        // 校验页大小合法性（1-100之间）
+        if (pageSize < 1 || pageSize > 100) {
+            throw new BusinessException("页大小必须在1-100之间");
+        }
+
+        // 构建分页参数
+        Pageable pageable = PageRequest.of(jpaPageNum, pageSize);
+
+        // 2. 提取查询参数并校验
+        String keyword = searchDTO.getKeyword();
+        Integer categoryId = searchDTO.getCategoryId();
+        String author = searchDTO.getAuthor();
+        String publisher = searchDTO.getPublisher();
+        String publishDateStart = searchDTO.getPublishDateStart();
+        String publishDateEnd = searchDTO.getPublishDateEnd();
+        Boolean available = searchDTO.getAvailable();
+
+        // 分类ID校验（若不为空则必须为正数）
+        if (categoryId != null && categoryId <= 0) {
+            throw new BusinessException("分类ID必须为正数");
+        }
+
+        // 3. 构建查询条件
         Specification<Book> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // 关键词模糊查询（书名/作者等）
-            if (keyword != null && !keyword.trim().isEmpty()) {
+            // 关键词模糊查询（书名/作者/ISBN）
+            if (StringUtils.hasText(keyword)) {
                 String likePattern = "%" + keyword.trim() + "%";
                 predicates.add(cb.or(
                         cb.like(root.get("bookName"), likePattern),
-                        cb.like(root.get("author"), likePattern)
+                        cb.like(root.get("author"), likePattern),
+                        cb.like(root.get("isbn"), likePattern)
                 ));
             }
 
@@ -400,35 +439,98 @@ public class BookServiceImpl implements BookService {
                 predicates.add(cb.equal(root.get("categoryId"), categoryId));
             }
 
+            // 作者筛选
+            if (StringUtils.hasText(author)) {
+                predicates.add(cb.like(root.get("author"), "%" + author.trim() + "%"));
+            }
+
+            // 出版社筛选
+            if (StringUtils.hasText(publisher)) {
+                predicates.add(cb.like(root.get("publisher"), "%" + publisher.trim() + "%"));
+            }
+
+            // 出版日期范围筛选（格式校验）
+            try {
+                if (StringUtils.hasText(publishDateStart)) {
+                    LocalDate startDate = LocalDate.parse(publishDateStart.trim());
+                    predicates.add(cb.greaterThanOrEqualTo(root.get("publisherDate"), startDate));
+                }
+
+                if (StringUtils.hasText(publishDateEnd)) {
+                    LocalDate endDate = LocalDate.parse(publishDateEnd.trim());
+                    predicates.add(cb.lessThanOrEqualTo(root.get("publisherDate"), endDate));
+                }
+            } catch (DateTimeParseException e) {
+                throw new BusinessException("出版日期格式错误，应为yyyy-MM-dd");
+            }
+
+            // 开始日期不能晚于结束日期
+            if (StringUtils.hasText(publishDateStart) && StringUtils.hasText(publishDateEnd)) {
+                try {
+                    LocalDate start = LocalDate.parse(publishDateStart.trim());
+                    LocalDate end = LocalDate.parse(publishDateEnd.trim());
+                    if (start.isAfter(end)) {
+                        throw new BusinessException("开始日期不能晚于结束日期");
+                    }
+                } catch (DateTimeParseException e) {
+                    // 已在上方捕获格式错误，此处无需重复处理
+                }
+            }
+
+            // 可借状态筛选
+            if (available != null && available) {
+                predicates.add(cb.greaterThan(root.get("availableCount"), 0));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        // 执行查询并转换结果（省略具体实现）
+        // 4. 执行查询
         Page<Book> bookPage = bookRepository.findAll(spec, pageable);
+
+        // 5. 转换结果（示例，实际需根据项目完善）
         List<BookListResponseDTO> dtoList = convertToDTO(bookPage.getContent());
 
-        // 返回分页结果
+        // 6. 返回分页结果
         return new PageResultDTO<>(
                 bookPage.getTotalElements(),
                 bookPage.getTotalPages(),
-                searchDTO.getPageNum(), // 前端原始页码
+                pageNum, // 前端原始页码
                 pageSize,
                 dtoList
         );
     }
 
-    // DTO转换工具方法（示例）
     private List<BookListResponseDTO> convertToDTO(List<Book> books) {
-        // 具体转换逻辑
-        return books.stream().map(book -> {
+        List<BookListResponseDTO> dtos = new ArrayList<>();
+        for (Book book : books) {
             BookListResponseDTO dto = new BookListResponseDTO();
+            // 映射图书基本信息
             dto.setBookId(book.getBookId());
             dto.setBookName(book.getBookName());
             dto.setAuthor(book.getAuthor());
-            // 其他字段映射...
-            return dto;
-        }).collect(Collectors.toList());
+            dto.setIsbn(book.getIsbn());
+            dto.setPublisher(book.getPublisher());
+            dto.setPublishDate(book.getPublisherDate()); // 注意DTO字段是publishDate，实体类是publisherDate
+            dto.setTotalStock(book.getTotalStock());
+            dto.setAvailableCount(book.getAvailableCount());
+            dto.setLocation(book.getLocation());
+
+            // 处理分类名称（需要从分类ID查询        // 这里需要通过categoryId查询分类名称，假设通过categoryRepository获取
+            if (book.getCategoryId() != null) {
+                String categoryName = categoryRepository.findById(book.getCategoryId())
+                        .map(category -> category.getCategoryName()) // 假设分类实体有getCategoryName()方法
+                        .orElse("未知分类"); // 处理分类不存在的情况
+                dto.setCategoryName(categoryName);
+            } else {
+                dto.setCategoryName("未分类");
+            }
+
+            dtos.add(dto);
+        }
+        return dtos;
     }
+
 
     @Override
     public BookDetailResponseDTO getBookDetail(Integer bookId) {
@@ -509,33 +611,37 @@ public class BookServiceImpl implements BookService {
         LocalDateTime now = LocalDateTime.now();
 
         for (BookStockAdjustRequestDTO dto : requestDTOList) {
-            // 2. 基础参数校验
-            if (dto.getBookId() == null || dto.getAdjustNum() == null) {
-                throw new BusinessException("图书ID和调整数量不能为空");
+            // 为每个图书ID单独加锁，避免批量操作中的并发冲突
+            synchronized (getLock(dto.getBookId())) {
+                // 2. 基础参数校验
+                if (dto.getBookId() == null || dto.getAdjustNum() == null) {
+                    throw new BusinessException("图书ID和调整数量不能为空");
+                }
+
+                // 3. 查询图书
+                Book book = bookRepository.findById(dto.getBookId())
+                        .orElseThrow(() -> new BusinessException("图书不存在：" + dto.getBookId()));
+
+                // 4. 计算新库存（防止负数）
+                int newStock = book.getTotalStock() + dto.getAdjustNum();
+                if (newStock < 0) {
+                    throw new BusinessException(
+                            String.format("图书【%s】库存不足，当前库存：%d，调整数量：%d",
+                                    book.getBookName(), book.getTotalStock(), dto.getAdjustNum())
+                    );
+                }
+
+                // 5. 更新库存（同步调整可借阅数量）
+                book.setTotalStock(newStock);
+                if (dto.getAdjustNum() > 0) {
+                    book.setAvailableCount(book.getAvailableCount() + dto.getAdjustNum());
+                }
+
+                bookRepository.save(book);
             }
-
-            // 3. 查询图书
-            Book book = bookRepository.findById(dto.getBookId())
-                    .orElseThrow(() -> new BusinessException("图书不存在：" + dto.getBookId()));
-
-            // 4. 计算新库存（防止负数）
-            int newStock = book.getTotalStock() + dto.getAdjustNum();
-            if (newStock < 0) {
-                throw new BusinessException(
-                        String.format("图书【%s】库存不足，当前库存：%d，调整数量：%d",
-                                book.getBookName(), book.getTotalStock(), dto.getAdjustNum())
-                );
-            }
-
-            // 5. 更新库存（同步调整可借阅数量）
-            book.setTotalStock(newStock);
-            if (dto.getAdjustNum() > 0) {
-                 book.setAvailableCount(book.getAvailableCount() + dto.getAdjustNum());
-             }
-
-            bookRepository.save(book);
         }
     }
+
 
     // 复用已有的DTO转换方法
     private BookDetailResponseDTO convertToDetailDTO(Book book) {

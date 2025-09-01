@@ -101,7 +101,7 @@ public class ReserveServiceImpl implements ReserveService {
 
         // 检查状态是否可取消
         if (reserve.getReserveStatus() == ReserveRecord.ReserveStatus.cancelled) {
-            throw new BusinessException("该预约已取消");
+            return;
         }
 
         reserve.setReserveStatus(ReserveRecord.ReserveStatus.cancelled);
@@ -123,6 +123,15 @@ public class ReserveServiceImpl implements ReserveService {
         // 检查是否过期
         if (LocalDateTime.now().isAfter(reserve.getExpireDate())) {
             throw new BusinessException("预约已过期");
+        }
+
+        // 同一本书是否已存在有效的 reserved 状态预约
+        Integer bookId = reserve.getBookId();
+        boolean hasValidReserved = reserveRecordRepository.existsByBookIdAndReserveStatus(
+                bookId, ReserveRecord.ReserveStatus.reserved
+        );
+        if (hasValidReserved) {
+            throw new BusinessException("该图书已有生效的预约，无法重复确认");
         }
 
         reserve.setReserveStatus(ReserveRecord.ReserveStatus.reserved);
@@ -233,6 +242,26 @@ public class ReserveServiceImpl implements ReserveService {
                 .orElseThrow(() -> new BusinessException("预约记录不存在：" + reserveId));
     }
 
+    //完成预约
+    @Override
+    @Transactional
+    public void completeReservation(Integer reserveId) {
+        ReserveRecord reserve = reserveRecordRepository.findById(reserveId)
+                .orElseThrow(() -> new BusinessException("预约记录不存在"));
+
+        // 校验状态：只有“已确认（reserved）”的预约可转为“已完成”
+        if (reserve.getReserveStatus() != ReserveRecord.ReserveStatus.reserved) {
+            throw new BusinessException("只有已确认的预约可标记为完成");
+        }
+
+        // 校验是否过期（已确认的预约仍可能过期未取）
+        if (LocalDateTime.now().isAfter(reserve.getExpireDate())) {
+            throw new BusinessException("预约已过期，无法完成");
+        }
+
+        reserve.setReserveStatus(ReserveRecord.ReserveStatus.completed);
+        reserveRecordRepository.save(reserve);
+    }
 }
 
 

@@ -8,6 +8,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.Pattern;
 import java.time.LocalDate;
 
+
 /**
  * 图书新增请求DTO
  * 接收新增图书的参数，关联分类 ID（而非分类实体），确保参数合法性。

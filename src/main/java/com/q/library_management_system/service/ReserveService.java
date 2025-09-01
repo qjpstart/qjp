@@ -2,6 +2,8 @@ package com.q.library_management_system.service;
 
 import com.q.library_management_system.entity.ReserveRecord;
 import com.q.library_management_system.exception.BusinessException;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 public interface ReserveService {
@@ -42,5 +44,8 @@ public interface ReserveService {
     boolean isReserveExpired(Integer reserveId);
 
     ReserveRecord getReserveById(Integer reserveId);
+
+    //完成预约
+    void completeReservation(Integer reserveId);
 }
 

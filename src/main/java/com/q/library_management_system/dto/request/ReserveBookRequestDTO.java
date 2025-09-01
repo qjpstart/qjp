@@ -17,9 +17,6 @@ public class ReserveBookRequestDTO {
     @Min(value = 1, message = "用户ID必须为正数")
     private Integer userId;
 
-    /** 预约备注（可选，长度不超过200字） */
-    @org.hibernate.validator.constraints.Length(max = 200, message = "预约备注不能超过200字")
-    private String remark;
 
     // 手动生成getter和setter
     public Integer getBookId() {
@@ -38,12 +35,5 @@ public class ReserveBookRequestDTO {
         this.userId = userId;
     }
 
-    public String getRemark() {
-        return remark;
-    }
-
-    public void setRemark(String remark) {
-        this.remark = remark;
-    }
 }
 
