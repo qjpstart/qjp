@@ -290,7 +290,7 @@ public class BorrowServiceImpl implements BorrowService {
                     .orElseThrow(() -> new BusinessException("借阅记录不存在")));
         } else {
             // 批量处理：查询所有未归还且已逾期的记录
-            return borrowRecordRepository.findByStatusAndDueTimeBefore(
+            return borrowRecordRepository.findByBorrowStatusAndDueTimeBefore(
                     BorrowRecord.BorrowStatus.unreturned, LocalDateTime.now()
             );
         }

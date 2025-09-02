@@ -27,10 +27,10 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
     List<Integer> findBorrowedBookIds(@Param("bookIds") List<Integer> bookIds);
 
     // 根据借阅状态查询（如查询所有未归还的记录）
-    List<BorrowRecord> findByBorrowStatus(BorrowRecord.BorrowStatus status);
+    List<BorrowRecord> findByBorrowStatus(BorrowRecord.BorrowStatus  borrowStatus);
 
     // 根据用户ID和状态查询（如查询用户的未还记录）
-    List<BorrowRecord> findByUserIdAndBorrowStatus(Integer userId, BorrowRecord.BorrowStatus status);
+    List<BorrowRecord> findByUserIdAndBorrowStatus(Integer userId, BorrowRecord.BorrowStatus  borrowStatus);
 
     // 检查“指定用户、指定图书、指定状态”的借阅记录是否存在，避免用户重复借阅同一本未归还的图书
     boolean existsByUserIdAndBookIdAndBorrowStatus(
@@ -40,14 +40,11 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
     );
 
     //  按图书ID + 借阅状态查询记录
-    List<BorrowRecord> findByBookIdAndBorrowStatus(Integer bookId, BorrowRecord.BorrowStatus status);
-
-    // 根据用户ID和状态查询借阅记录,用于查询用户未归还的图书
-    List<BorrowRecord> findByUserIdAndStatus(Integer userId, BorrowRecord.BorrowStatus status);
+    List<BorrowRecord> findByBookIdAndBorrowStatus(Integer bookId, BorrowRecord.BorrowStatus  borrowStatus);
 
     // 检查指定图书是否存在未归还的借阅记录,删除图书前验证（有未归还记录则不允许删除）
-    boolean existsByBookIdAndStatus(Integer bookId, BorrowRecord.BorrowStatus status);
+    boolean existsByBookIdAndBorrowStatus(Integer bookId, BorrowRecord.BorrowStatus  borrowStatus);
 
     // 查询所有已借出且超期未还的记录（用于批量处理）
-    List<BorrowRecord> findByStatusAndDueTimeBefore(BorrowRecord.BorrowStatus status, LocalDateTime dueTime);
+    List<BorrowRecord> findByBorrowStatusAndDueTimeBefore(BorrowRecord.BorrowStatus borrowStatus, LocalDateTime dueTime);
 }

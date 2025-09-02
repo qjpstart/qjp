@@ -192,7 +192,7 @@ public class BookServiceImpl implements BookService {
 
         // 检查是否有未归还的借阅记录（核心验证）
         boolean hasUnreturned = borrowRecordRepository
-                .existsByBookIdAndStatus(bookId, BorrowRecord.BorrowStatus.unreturned);
+                .existsByBookIdAndBorrowStatus(bookId, BorrowRecord.BorrowStatus.unreturned);
 
         if (hasUnreturned) {
             throw new BusinessException("该图书存在未归还的借阅记录，无法删除");

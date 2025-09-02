@@ -137,7 +137,7 @@ public class AllTablesTest {
 
     // 5. 测试预约记录表（依赖用户表和图书表）
     @Test
-    public void testReservationRecord() {
+    public void testReserveRecord() {
         // 先获取测试用户和测试图书
         User user = userRepository.findAll().stream()
                 .findFirst()
