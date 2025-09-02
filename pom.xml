@@ -142,6 +142,12 @@
 			<artifactId>commons-lang3</artifactId>
 			<version>3.12.0</version>
 		</dependency>
+		<!-- SpringDoc OpenAPI（基于OpenAPI 3.0，兼容Swagger） -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.1.0</version> <!-- 版本可根据Spring Boot版本调整 -->
+		</dependency>
 
 	</dependencies>
 
