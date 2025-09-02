@@ -1,6 +1,8 @@
 package com.q.library_management_system.dto.request;
 
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Min;
+
+
 
 /**
  * 取消预约请求DTO

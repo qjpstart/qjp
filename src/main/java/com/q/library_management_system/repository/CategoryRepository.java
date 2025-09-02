@@ -13,7 +13,7 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
     Optional<Category> findByCategoryName(String categoryName);
 
     // 根据父分类ID查询子分类（用于多级分类）
-    List<Category> findByParentId(String parentId);
+    List<Category> findByParentId(Integer parentId);
 
     // 检查分类名称是否已存在
     boolean existsByCategoryName(String categoryName);

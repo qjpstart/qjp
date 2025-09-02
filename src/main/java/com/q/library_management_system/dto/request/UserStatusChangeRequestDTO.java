@@ -1,8 +1,8 @@
 package com.q.library_management_system.dto.request;
 
 import com.q.library_management_system.entity.User;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import javax.validation.constraints.NotNull;
 
 /**
  * 用户状态变更请求DTO

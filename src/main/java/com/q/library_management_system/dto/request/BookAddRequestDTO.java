@@ -1,11 +1,8 @@
 package com.q.library_management_system.dto.request;
 
+import jakarta.validation.constraints.*;
 import lombok.Data;
-import org.hibernate.validator.constraints.Length;
-import org.hibernate.validator.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Pattern;
+
 import java.time.LocalDate;
 
 
@@ -18,12 +15,12 @@ public class BookAddRequestDTO {
 
     /** 书名 */
     @NotBlank(message = "书名不能为空")
-    @Length(max = 100, message = "书名长度不能超过100位")
+    @Size(max = 100, message = "书名长度不能超过100位")
     private String bookName;
 
     /** 作者 */
     @NotBlank(message = "作者不能为空")
-    @Length(max = 50, message = "作者名称不能超过50位")
+    @Size(max = 50, message = "作者名称不能超过50位")
     private String author;
 
     /** ISBN编号（唯一） */
@@ -33,7 +30,7 @@ public class BookAddRequestDTO {
 
     /** 出版社 */
     @NotBlank(message = "出版社不能为空")
-    @Length(max = 50, message = "出版社名称不能超过50位")
+    @Size(max = 50, message = "出版社名称不能超过50位")
     private String publisher;
 
     // 出版日期：名称必须是publisherDate，与实体类匹配
@@ -56,11 +53,11 @@ public class BookAddRequestDTO {
     private Integer availableStock;
 
     /** 馆藏位置（如A区1架） */
-    @Length(max = 20, message = "馆藏位置不能超过20位")
+    @Size(max = 20, message = "馆藏位置不能超过20位")
     private String location;
 
     /** 图书简介（可选，最多500字） */
-    @Length(max = 500, message = "图书简介不能超过500字")
+    @Size(max = 500, message = "图书简介不能超过500字")
     private String description;
 
     // 必须提供getter方法（否则服务层无法获取字段值）

@@ -1,9 +1,10 @@
 package com.q.library_management_system.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
-import org.hibernate.validator.constraints.Length;
-import org.hibernate.validator.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
+
 
 /**
  * 用户注册请求DTO
@@ -18,7 +19,7 @@ public class UserRegisterRequestDTO {
 
     /** 密码（6-20位，包含字母和数字） */
     @NotBlank(message = "密码不能为空")
-    @Length(min = 6, max = 20, message = "密码长度需为6-20位")
+    @Size(min = 6, max = 20, message = "密码长度需为6-20位")
     @Pattern(regexp = "^(?=.*[a-zA-Z])(?=.*\\d).+$", message = "密码需包含字母和数字")
     private String password;
 

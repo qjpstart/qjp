@@ -1,10 +1,10 @@
 package com.q.library_management_system.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @Data

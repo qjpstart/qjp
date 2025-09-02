@@ -11,6 +11,7 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI libraryOpenAPI() {
         return new OpenAPI()
+                .openapi("3.0.3")
                 .info(new Info()
                         .title("图书馆管理系统API文档")
                         .description("包含用户管理、图书管理、借阅预约等核心功能接口")

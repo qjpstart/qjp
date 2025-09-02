@@ -75,9 +75,6 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
         };
     }
 
-    // 根据用户名查询用户（用于登录和权限校验）
-    Optional<User> findByUsername(String username);
-
     // 按用户类型统计数量（如管理员数量）
     long countByUserType(User.UserType userType);
 

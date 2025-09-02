@@ -1,8 +1,9 @@
 package com.q.library_management_system.dto.request;
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import javax.validation.constraints.NotNull;
+
 
 import java.util.List;
 

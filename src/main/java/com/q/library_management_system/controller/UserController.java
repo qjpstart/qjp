@@ -10,15 +10,17 @@ import com.q.library_management_system.entity.User;
 import com.q.library_management_system.exception.BusinessException;
 import com.q.library_management_system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Min;
+
 
 /**
  * 用户模块控制层
@@ -280,6 +282,21 @@ public class UserController {
         return CommonResponseDTO.success(statistics, "查询成功");
     }
 
+    /**
+     * 管理员重置用户密码（重置为默认值）
+     */
+    @PostMapping("/admin/password/reset")
+    @Operation(summary = "重置用户密码", description = "管理员将用户密码重置为默认值（123456），用户需重新登录修改")
+    public CommonResponseDTO<Void> resetPasswordByAdmin(
+            @Parameter(description = "目标用户ID", required = true)
+            @RequestParam @Min(value = 1, message = "用户ID必须为正数") Integer userId
+    ) {
+        checkAdminPermission(); // 校验管理员权限
+
+        // 调用服务层重置密码
+        userService.resetPasswordByAdmin(userId);
+        return CommonResponseDTO.success(null, "密码已重置为默认值123456，请通知用户登录后修改");
+    }
 
 }
 

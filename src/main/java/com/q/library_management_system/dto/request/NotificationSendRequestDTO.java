@@ -1,8 +1,10 @@
 package com.q.library_management_system.dto.request;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import org.hibernate.validator.constraints.Length;
+
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * 消息通知发送请求DTO
@@ -16,12 +18,12 @@ public class NotificationSendRequestDTO {
 
     /** 消息标题 */
     @NotNull(message = "消息标题不能为空")
-    @Length(min = 2, max = 50, message = "消息标题需为2-50位")
+    @Size(min = 2, max = 50, message = "消息标题需为2-50位")
     private String title;
 
     /** 消息内容 */
     @NotNull(message = "消息内容不能为空")
-    @Length(min = 5, max = 500, message = "消息内容需为5-500位")
+    @Size(min = 5, max = 500, message = "消息内容需为5-500位")
     private String content;
 
     /** 消息类型（如"reserve_expire"=预约到期，"overdue"=逾期） */

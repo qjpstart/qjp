@@ -1,10 +1,10 @@
 package com.q.library_management_system.dto.request;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
-import org.hibernate.validator.constraints.Email;
 
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
 
 @Data
 public class UserInfoUpdateRequestDTO {

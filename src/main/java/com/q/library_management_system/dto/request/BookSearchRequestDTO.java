@@ -1,7 +1,8 @@
 package com.q.library_management_system.dto.request;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
+
 
 /**
  * 图书高级搜索请求DTO

@@ -1,7 +1,8 @@
 package com.q.library_management_system.dto.request;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * 通用分页查询请求DTO

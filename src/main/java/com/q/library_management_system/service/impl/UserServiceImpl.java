@@ -500,7 +500,7 @@ public class UserServiceImpl implements UserService {
     // 根据用户名查询用户
     @Override
     public User findByUsername(String username) {
-        return userRepository.findByUsername(username)
+        return userRepository.findByUserName(username)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
     }
 
@@ -605,5 +605,25 @@ public class UserServiceImpl implements UserService {
         );
     }
 
+    /**
+     * 管理员重置用户密码为默认值（123456）
+     */
+    @Override
+    @Transactional
+    public void resetPasswordByAdmin(Integer userId) {
+        // 1. 校验用户是否存在
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在：" + userId));
+
+        // 2. 校验是否为管理员自身（避免误操作）
+        if (User.UserType.admin.equals(user.getUserType())) {
+            throw new BusinessException("不允许重置管理员账号密码");
+        }
+
+        // 3. 加密默认密码（123456）并更新
+        String defaultPassword = "123456";
+        user.setPassword(passwordEncoder.encode(defaultPassword));
+        userRepository.save(user);
+    }
 }
 

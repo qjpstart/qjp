@@ -1,7 +1,7 @@
 package com.q.library_management_system.dto.request;
 
-import org.hibernate.validator.constraints.NotBlank;
-import javax.validation.constraints.Min;
+
+import jakarta.validation.constraints.Min;
 
 /**
  * 图书预约请求DTO

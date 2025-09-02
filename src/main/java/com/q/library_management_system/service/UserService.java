@@ -77,4 +77,10 @@ public interface UserService {
 
     // 获取用户统计信息的方法声明
     String getUserStatistics();
+
+    /**
+     * 管理员重置用户密码为默认值（123456）
+     * @param userId 目标用户ID
+     */
+    void resetPasswordByAdmin(Integer userId);
 }

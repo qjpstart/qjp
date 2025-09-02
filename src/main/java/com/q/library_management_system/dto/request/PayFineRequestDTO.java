@@ -1,8 +1,8 @@
 package com.q.library_management_system.dto.request;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Min;
 
 /**
  * 罚款缴纳请求DTO

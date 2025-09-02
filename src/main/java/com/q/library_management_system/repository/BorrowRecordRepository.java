@@ -23,7 +23,7 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
      */
     @Query("SELECT DISTINCT br.bookId FROM BorrowRecord br " +
             "WHERE br.bookId IN :bookIds " +
-            "AND br.returnTime IS NULL") // 只查询未归还的记录
+            "AND br.returnDate IS NULL") // 只查询未归还的记录
     List<Integer> findBorrowedBookIds(@Param("bookIds") List<Integer> bookIds);
 
     // 根据借阅状态查询（如查询所有未归还的记录）
@@ -46,5 +46,5 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
     boolean existsByBookIdAndBorrowStatus(Integer bookId, BorrowRecord.BorrowStatus  borrowStatus);
 
     // 查询所有已借出且超期未还的记录（用于批量处理）
-    List<BorrowRecord> findByBorrowStatusAndDueTimeBefore(BorrowRecord.BorrowStatus borrowStatus, LocalDateTime dueTime);
+    List<BorrowRecord> findByBorrowStatusAndDueDateBefore(BorrowRecord.BorrowStatus borrowStatus, LocalDateTime dueDate);
 }

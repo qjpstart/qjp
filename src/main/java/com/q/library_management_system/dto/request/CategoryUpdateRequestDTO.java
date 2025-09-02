@@ -1,8 +1,9 @@
 package com.q.library_management_system.dto.request;
 
-import org.hibernate.validator.constraints.Length;
-import org.hibernate.validator.constraints.NotBlank;
-import javax.validation.constraints.Min;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 /**
  * 图书分类修改请求DTO
@@ -19,7 +20,7 @@ public class CategoryUpdateRequestDTO {
      * 分类名称（非空，长度2-30位）
      */
     @NotBlank(message = "分类名称不能为空")
-    @Length(min = 2, max = 30, message = "分类名称长度需为2-30位")
+    @Size(min = 2, max = 30, message = "分类名称长度需为2-30位")
     private String categoryName;
 
     /**
@@ -32,7 +33,7 @@ public class CategoryUpdateRequestDTO {
     /**
      * 分类描述（可选，最多200字）
      */
-    @Length(max = 200, message = "分类描述不能超过200字")
+    @Size(max = 200, message = "分类描述不能超过200字")
     private String description;
 
     // 手动生成getter和setter

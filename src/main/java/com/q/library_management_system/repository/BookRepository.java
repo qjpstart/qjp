@@ -59,21 +59,21 @@ public interface BookRepository extends JpaRepository<Book, Integer>, JpaSpecifi
 
     // 按分类统计图书数量（返回分类名称和对应数量）
     @Query("SELECT c.categoryName, COUNT(b) FROM Book b " +
-            "JOIN b.category c " +
+            "JOIN Category c ON b.categoryId = c.categoryId " +
             "GROUP BY c.categoryName")
     List<Object[]> countByCategoryGroup();
 
     // 统计所有可借阅图书数量（sum(available_stock)）
-    @Query("SELECT SUM(b.availableStock) FROM Book b")
+    @Query("SELECT SUM(b.availableCount) FROM Book b")
     Long sumAvailableBooks();
 
     // 根据图书ID查询可借数量（返回单个图书的可借数量）
-    @Query("SELECT b.availableStock FROM Book b WHERE b.bookId = :bookId")
-    Integer findAvailableStockByBookId(Integer bookId);
+    @Query("SELECT b.availableCount FROM Book b WHERE b.bookId = :bookId")
+    Integer findAvailableCountByBookId(Integer bookId);
 
     // 统计所有图书的总可借数量
-    @Query("SELECT SUM(b.availableStock) FROM Book b")
-    Long sumAllAvailableStocks();
+    @Query("SELECT SUM(b.availableCount) FROM Book b")
+    Long sumAllAvailableCount();
 
     // 添加带悲观锁的查询方法（用于并发控制）
     @Lock(LockModeType.PESSIMISTIC_WRITE) // 加写锁，防止其他事务修改

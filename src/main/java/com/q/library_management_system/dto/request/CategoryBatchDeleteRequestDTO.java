@@ -1,8 +1,9 @@
 package com.q.library_management_system.dto.request;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
-import org.hibernate.validator.constraints.NotEmpty;
+
 
 import java.util.List;
 

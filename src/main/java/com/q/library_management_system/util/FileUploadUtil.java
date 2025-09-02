@@ -16,17 +16,25 @@ public class FileUploadUtil {
 
     /** 生成唯一文件名（避免重复） */
     public String generateFileName(String originalFilename) {
-        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        // 处理原始文件名为null的情况
+        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+            originalFilename = "default_file"; // 默认文件名
+        }
+        // 提取扩展名（若没有扩展名则默认用 .dat）
+        int lastDotIndex = originalFilename.lastIndexOf(".");
+        String suffix = lastDotIndex == -1 ? ".dat" : originalFilename.substring(lastDotIndex);
         return UUID.randomUUID().toString() + suffix;
     }
 
+
     /** 获取服务器绝对存储路径 */
     public String getAbsoluteFilePath(String fileName) {
-        // 移除 uploadPath 末尾可能存在的分隔符，统一通过 File.separator 拼接
+        // 移除 uploadPath 末尾可能存在的分隔符，统一拼接
         String normalizedUploadPath = uploadPath.replaceAll(File.separator + "$", "");
-        // 使用 File.separator 自动适配系统分隔符
-        return uploadPath + File.separator + fileName;
+        // 使用处理后的路径拼接文件名
+        return normalizedUploadPath + File.separator + fileName;
     }
+
 
     /** 获取前端访问URL */
     public String getAccessUrl(String fileName) {

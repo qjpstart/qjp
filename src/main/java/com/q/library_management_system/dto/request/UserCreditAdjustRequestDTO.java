@@ -1,8 +1,10 @@
 package com.q.library_management_system.dto.request;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import org.hibernate.validator.constraints.Length;
+
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * 用户信用分调整请求DTO
@@ -20,7 +22,7 @@ public class UserCreditAdjustRequestDTO {
 
     /** 调整原因（如“逾期未还扣减”“连续3个月无逾期奖励”） */
     @NotNull(message = "调整原因不能为空")
-    @Length(min = 2, max = 100, message = "调整原因需为2-100位")
+    @Size(min = 2, max = 100, message = "调整原因需为2-100位")
     private String reason;
 
     /** 操作人ID（管理员ID） */
