@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 忽略所有环境变量文件
+.env
+.env.*
+
+# 例外：允许提交环境变量模板文件（不含真实数据）
+!.env.example
